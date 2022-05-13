@@ -1,0 +1,90 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+generator client {
+  provider        = "prisma-client-js"
+  previewFeatures = ["mongoDb"]
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id        String   @id @default(uuid())
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  email     String   @unique
+  password  String
+  language  String?
+
+  // Public info
+  username  String @unique
+  firstName String
+  lastName  String
+
+  photoUrl      String?
+  photoBlurHash String?
+
+  // Game data
+  games      Game[]  @relation("games")
+  recentGame Game?   @relation("recent", fields: [recent], references: [id])
+  recent     String?
+
+  // Relationships
+  followedBy Follows[] @relation("follower")
+  follows    Follows[] @relation("following")
+
+  // BE only
+  tokens Token[]
+}
+
+model Follows {
+  follower    User   @relation("following", fields: [followerId], references: [id])
+  followerId  String
+  following   User   @relation("follower", fields: [followingId], references: [id])
+  followingId String
+
+  @@id([followerId, followingId])
+}
+
+enum TokenType {
+  ACCESS
+  REFRESH
+  VERIFY
+  RESET
+}
+
+enum Difficulty {
+  EASY
+  MEDIUM
+  HARD
+  INSANE
+}
+
+model Token {
+  id        String    @id @default(uuid())
+  createdAt DateTime  @default(now())
+  type      TokenType
+  user      User      @relation(fields: [userId], references: [id])
+  userId    String
+  token     String
+}
+
+model Game {
+  id         String     @id @default(uuid())
+  createdAt  DateTime   @default(now())
+  updatedAt  DateTime   @updatedAt
+  user       User       @relation("games", fields: [userId], references: [id])
+  userId     String
+  difficulty Difficulty
+  word       String
+  guesses    String[]
+  complete   Boolean
+  correct    Boolean    @default(false)
+  language   String     @default("English")
+
+  User User[] @relation("recent")
+  @@unique([userId, word])
+}
